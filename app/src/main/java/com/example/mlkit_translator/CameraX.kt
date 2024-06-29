@@ -1,4 +1,4 @@
-package com.example.mlkit_translator.composables
+package com.example.mlkit_translator
 
 import android.content.Context
 import android.net.Uri
@@ -8,14 +8,17 @@ import androidx.camera.core.ImageCaptureException
 import androidx.camera.core.Preview
 import androidx.camera.lifecycle.ProcessCameraProvider
 import androidx.camera.view.PreviewView
-import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -27,6 +30,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalLifecycleOwner
+import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.content.ContextCompat
 import com.google.common.util.concurrent.ListenableFuture
@@ -56,29 +60,52 @@ fun CameraPreviewScreen(onBack: () -> Unit, onImageCaptured: (Uri) -> Unit) {
         }, ContextCompat.getMainExecutor(context))
     }
 
-    Box(contentAlignment = Alignment.BottomCenter, modifier = Modifier.fillMaxSize()) {
-        if (isLoading) {
-            CircularProgressIndicator(modifier = Modifier.align(Alignment.Center))
-        } else {
-            IconButton(
+    Column(modifier = Modifier.fillMaxSize()) {
+        // Camera preview
+        AndroidView(
+            { previewView },
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(16.dp)
+        )
+        Spacer(modifier = Modifier.height(40.dp))
+        Row() {
+            Button(
                 onClick = onBack,
-                modifier = Modifier.align(Alignment.TopStart)
+                modifier = Modifier
+                    .padding(16.dp)
             ) {
-                Icon(Icons.Default.ArrowBack, contentDescription = "Back")
+                Icon(Icons.Default.ArrowBack,
+                    contentDescription = "Back")
+                Text(text = "뒤로 가기")
             }
-            AndroidView({ previewView }, modifier = Modifier.fillMaxSize())
-            Button(onClick = {
-                isLoading = true
-                captureImage(imageCapture, context) { uri ->
-                    isLoading = false
-                    onImageCaptured(uri)
-                }
-            }) {
-                Text(text = "Capture Image")
+
+            // Capture button
+            Button(
+                onClick = {
+                    isLoading = true
+                    captureImage(imageCapture, context) { uri ->
+                        isLoading = false
+                        onImageCaptured(uri)
+                    }
+                },
+                modifier = Modifier
+                    .padding(16.dp),
+            ) {
+                Text(text = "사진 찍기")
             }
+        }
+
+
+        // Loading indicator
+        if (isLoading) {
+            CircularProgressIndicator(
+                modifier = Modifier.align(Alignment.CenterHorizontally)
+            )
         }
     }
 }
+
 
 fun captureImage(imageCapture: ImageCapture, context: Context, onImageCaptured: (Uri) -> Unit) {
     val file = File(context.externalMediaDirs.first(), "${System.currentTimeMillis()}.jpg")
