@@ -52,7 +52,12 @@ class FirebaseLogin : ComponentActivity() {
                         )
                     }
                     composable(Screens.TextExtract.route) {
-                        MainScreen()
+                        MainScreen(navController)
+                    }
+
+                    composable(Screens.Logdata.route + "/{email}") { backStackEntry ->
+                        val userID = backStackEntry.arguments?.getString("email") ?: ""
+                        FetchTranslatedData(userID)
                     }
                 }
             }
@@ -90,6 +95,7 @@ sealed class Screens(val route: String) {
     object Login : Screens("login_screen")
     object SignUp : Screens("sign_up_screen")
     object TextExtract : Screens("text_extract_screen")
+    object Logdata : Screens("Logdata_screen")
 }
 
 @Composable
@@ -97,8 +103,8 @@ fun LoginScreen(
     onLoginClick: (email: String, password: String) -> Unit,
     onSignUpClick: () -> Unit
 ) {
-    var email by remember { mutableStateOf("@gmail.com") }
-    var password by remember { mutableStateOf("") }
+    var email by remember { mutableStateOf("coreashield1@gmail.com") }
+    var password by remember { mutableStateOf("rlgns123") }
 
     Column(
         modifier = Modifier

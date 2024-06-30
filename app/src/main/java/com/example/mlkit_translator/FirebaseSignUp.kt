@@ -51,12 +51,9 @@ class FirebaseSignUp : ComponentActivity() {
         auth.createUserWithEmailAndPassword(email, password)
             .addOnCompleteListener(this) { task ->
                 if (task.isSuccessful) {
-                    // Sign up success, navigate back to login screen
                     navController.popBackStack(Screens.Login.route, inclusive = false)
                 } else {
-                    // If sign up fails, handle the error
-                    // For example, you can show a toast message
-                    // Toast.makeText(baseContext, "Sign up failed: ${task.exception?.message}", Toast.LENGTH_SHORT).show()
+                    //가입 실패
                 }
             }
     }

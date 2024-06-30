@@ -1,9 +1,14 @@
 package com.example.mlkit_translator
 
 import android.app.Activity
+import android.app.Application
+import android.content.ContentValues.TAG
+import android.content.Context
 import android.content.Intent
 import android.net.Uri
 import android.provider.MediaStore
+import android.util.Log
+import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.Image
@@ -33,9 +38,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
+import androidx.compose.runtime.livedata.observeAsState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -44,40 +47,154 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.AndroidViewModel
+import androidx.lifecycle.LiveData
+import androidx.lifecycle.MutableLiveData
+import androidx.lifecycle.ViewModel
+import androidx.lifecycle.ViewModelProvider
+import androidx.lifecycle.viewModelScope
+import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.navigation.NavHostController
 import coil.compose.rememberAsyncImagePainter
+import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.firestore.FieldValue
+import com.google.firebase.firestore.ktx.firestore
+import com.google.firebase.ktx.Firebase
+import com.google.firebase.storage.ktx.storage
 import com.google.mlkit.vision.common.InputImage
 import com.google.mlkit.vision.text.TextRecognition
 import com.google.mlkit.vision.text.korean.KoreanTextRecognizerOptions
+import kotlinx.coroutines.launch
+
+class MainScreenViewModel(application: Application) : AndroidViewModel(application) {
+    private val _outputText = MutableLiveData<String>()
+    val outputText: LiveData<String> = _outputText
+
+    private val _imageUri = MutableLiveData<Uri?>()
+    val imageUri: LiveData<Uri?> = _imageUri
+
+    private val _translatedText = MutableLiveData<String>()
+    val translatedText: LiveData<String> = _translatedText
+
+    private val _isCameraPreviewVisible = MutableLiveData<Boolean>()
+    val isCameraPreviewVisible: LiveData<Boolean> = _isCameraPreviewVisible
+
+    private val _isLoading = MutableLiveData<Boolean>()
+    val isLoading: LiveData<Boolean> = _isLoading
+
+    private val recognizer =
+        TextRecognition.getClient(KoreanTextRecognizerOptions.Builder().build())
+
+    fun setImageUri(uri: Uri?) {
+        _imageUri.value = uri
+        if (uri != null) {
+            processImage(uri)
+        }
+    }
+
+    fun setCameraPreviewVisible(visible: Boolean) {
+        _isCameraPreviewVisible.value = visible
+    }
+
+    fun saveResult(id: String, context: Context) {
+        val db = Firebase.firestore
+        val storage = Firebase.storage
+        val storageRef = storage.reference
+        val uri = _imageUri.value
+        if (uri != null) {
+            val riversRef = storageRef.child("${id}/${uri.lastPathSegment}")
+            val uploadTask = riversRef.putFile(uri)
+
+            uploadTask.addOnFailureListener { exception ->
+                Log.w(TAG, "Error uploading file", exception)
+                Toast.makeText(context, "파일 업로드 실패", Toast.LENGTH_SHORT).show()
+            }.addOnSuccessListener { taskSnapshot ->
+                riversRef.downloadUrl.addOnSuccessListener { uri ->
+                    val imageUrl = uri.toString()
+                    val data = hashMapOf(
+                        "convertData" to _outputText.value,
+                        "searchData" to "hi",
+                        "imageUrl" to imageUrl,
+                        "timestamp" to FieldValue.serverTimestamp(),
+                    )
+                    db.collection(id)
+                        .add(data)
+                        .addOnSuccessListener {
+                            Log.d(TAG, "DocumentSnapshot successfully written!")
+                            Toast.makeText(context, "업로드 및 저장 성공", Toast.LENGTH_SHORT).show()
+                        }
+                        .addOnFailureListener { e ->
+                            Log.w(TAG, "Error writing document", e)
+                            Toast.makeText(context, "데이터 저장 실패", Toast.LENGTH_SHORT).show()
+                        }
+                }
+            }
+        } else {
+            val data = hashMapOf(
+                "convertData" to _outputText.value,
+                "searchData" to "hi",
+                "imageUrl" to "",
+                "timestamp" to FieldValue.serverTimestamp(),
+            )
+            db.collection("logID")
+                .add(data)
+                .addOnSuccessListener {
+                    Log.d(TAG, "DocumentSnapshot successfully written!")
+                    Toast.makeText(context, "저장 성공", Toast.LENGTH_SHORT).show()
+                }
+                .addOnFailureListener { e ->
+                    Log.w(TAG, "Error writing document", e)
+                    Toast.makeText(context, "데이터 저장 실패", Toast.LENGTH_SHORT).show()
+                }
+        }
+    }
+
+    private fun processImage(uri: Uri) {
+        viewModelScope.launch {
+            _isLoading.value = true
+            val image = InputImage.fromFilePath(getApplication(), uri)
+            recognizer.process(image)
+                .addOnSuccessListener { visionText ->
+                    _outputText.value = visionText.text
+                    _isLoading.value = false
+                }
+                .addOnFailureListener {
+                    _isLoading.value = false
+                }
+        }
+    }
+}
+
+class MainScreenViewModelFactory(
+    private val application: Application
+) : ViewModelProvider.Factory {
+    override fun <T : ViewModel> create(modelClass: Class<T>): T {
+        if (modelClass.isAssignableFrom(MainScreenViewModel::class.java)) {
+            return MainScreenViewModel(application) as T
+        }
+        throw IllegalArgumentException("Unknown ViewModel class")
+    }
+}
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun MainScreen() {
+fun MainScreen(navController: NavHostController) {
     val context = LocalContext.current
-    val recognizer = TextRecognition.getClient(KoreanTextRecognizerOptions.Builder().build())
-    var outputText by remember { mutableStateOf("") }
-    var imageUri by remember { mutableStateOf<Uri?>(null) } // 이미지 URI 상태 변수
-    val translatedText by remember { mutableStateOf("") }
-    var isCameraPreviewVisible by remember { mutableStateOf(false) }
-    var isLoading by remember { mutableStateOf(false) } // 로딩 상태 변수 추가
+    val viewModel: MainScreenViewModel =
+        viewModel(factory = MainScreenViewModelFactory(context.applicationContext as Application))
+    val outputText by viewModel.outputText.observeAsState("")
+    val imageUri by viewModel.imageUri.observeAsState(null)
+    val translatedText by viewModel.translatedText.observeAsState("")
+    val isCameraPreviewVisible by viewModel.isCameraPreviewVisible.observeAsState(false)
+    val isLoading by viewModel.isLoading.observeAsState(false)
+    val email = FirebaseAuth.getInstance().currentUser?.email ?: ""
 
     val photoPickerLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.StartActivityForResult()
     ) { result ->
         if (result.resultCode == Activity.RESULT_OK) {
             val uri: Uri? = result.data?.data
-            if (uri != null) {
-                imageUri = uri
-                isLoading = true
-                val image = InputImage.fromFilePath(context, uri)
-                recognizer.process(image)
-                    .addOnSuccessListener { visionText ->
-                        outputText = visionText.text
-                        isLoading = false // 로딩 상태 종료
-                    }
-                    .addOnFailureListener {
-                        isLoading = false // 실패 시에도 로딩 상태 종료
-                    }
-            }
+            viewModel.setImageUri(uri)
         }
     }
 
@@ -86,13 +203,12 @@ fun MainScreen() {
             TopAppBar(
                 title = {
                     Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
-                        Text(text = "ML Kit Translator")
+                        Text(text = "번역 귀요미")
                     }
                 }
             )
         },
         bottomBar = {
-            // Custom bottom navigation using Row and IconButton
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -103,17 +219,20 @@ fun MainScreen() {
                 BottomNavigationItem(
                     icon = Icons.Filled.Home,
                     label = "Home",
-                    onClick = { /* Handle home navigation */ }
+                    onClick = { navController.navigate(Screens.TextExtract.route) }
                 )
                 BottomNavigationItem(
                     icon = Icons.Filled.Search,
                     label = "Log",
-                    onClick = { /* Handle translate navigation */ }
+                    onClick = {
+
+                        navController.navigate("${Screens.Logdata.route}/$email")
+                    }
                 )
                 BottomNavigationItem(
                     icon = Icons.Filled.Settings,
                     label = "Settings",
-                    onClick = { /* Handle settings navigation */ }
+                    onClick = { }
                 )
             }
         },
@@ -128,20 +247,10 @@ fun MainScreen() {
                 item {
                     if (isCameraPreviewVisible) {
                         CameraPreviewScreen(
-                            onBack = { isCameraPreviewVisible = false },
+                            onBack = { viewModel.setCameraPreviewVisible(false) },
                             onImageCaptured = { uri ->
-                                imageUri = uri // 이미지 URI 업데이트
-                                isCameraPreviewVisible = false
-                                isLoading = true // 로딩 상태 시작
-                                val image = InputImage.fromFilePath(context, uri)
-                                recognizer.process(image)
-                                    .addOnSuccessListener { visionText ->
-                                        outputText = visionText.text
-                                        isLoading = false // 로딩 상태 종료
-                                    }
-                                    .addOnFailureListener {
-                                        isLoading = false // 실패 시에도 로딩 상태 종료
-                                    }
+                                viewModel.setImageUri(uri)
+                                viewModel.setCameraPreviewVisible(false)
                             }
                         )
                     } else {
@@ -149,10 +258,9 @@ fun MainScreen() {
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .padding(horizontal = 16.dp, vertical = 8.dp),
-//                            verticalAlignment = Alignment.CenterVertically,
                             horizontalArrangement = Arrangement.Center,
                         ) {
-                            TakePicture(onClick = { isCameraPreviewVisible = true })
+                            TakePicture(onClick = { viewModel.setCameraPreviewVisible(true) })
                             ExtractButton(onClick = {
                                 val intent = Intent(
                                     Intent.ACTION_PICK,
@@ -160,12 +268,12 @@ fun MainScreen() {
                                 )
                                 photoPickerLauncher.launch(intent)
                             })
+                            SaveResultButton(email, context, viewModel)
                         }
-                        SaveResultButton()
                         DividerWithPadding()
-                        ImageDisplay(imageUri) // 이미지 URI를 ImageDisplay에 전달
+                        ImageDisplay(imageUri)
                         DividerWithPadding()
-                        OutputText(outputText,isLoading)
+                        OutputText(outputText, isLoading)
                         Text(
                             text = translatedText,
                             modifier = Modifier
@@ -178,7 +286,7 @@ fun MainScreen() {
                                 modifier = Modifier
                                     .padding(16.dp)
                                     .size(48.dp)
-                            ) // 로딩 인디케이터 표시
+                            )
                         }
                     }
                 }
@@ -225,9 +333,16 @@ fun ExtractButton(onClick: () -> Unit) {
     }
 }
 
+//저장
 @Composable
-fun SaveResultButton() {
-    Button(onClick = { /*TODO*/ }) {
+fun SaveResultButton(
+    id: String,
+    context: Context,
+    viewModel: MainScreenViewModel
+) {
+    Button(onClick = {
+        viewModel.saveResult(id, context)
+    }) {
         Text(text = "저장 하기")
     }
 }
@@ -264,14 +379,12 @@ fun ImageDisplay(imageUri: Uri?) {
                 text = "선택 된 이미지 없음",
                 modifier = Modifier.align(Alignment.Center)
             )
-            
         }
     }
 }
 
 @Composable
 fun OutputText(outputText: String, isLoading: Boolean) {
-    // 인식된 텍스트를 화면에 출력하는 부분.
     val displayText = if (isLoading) {
         "이미지를 분석중입니다"
     } else {
