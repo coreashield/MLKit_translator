@@ -1,9 +1,13 @@
 package com.example.mlkit_translator
 
+import android.Manifest
+import android.content.pm.PackageManager
 import android.os.Bundle
 import android.widget.Toast
 import androidx.activity.ComponentActivity
+import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.compose.setContent
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.Button
 import androidx.compose.material3.OutlinedTextField
@@ -11,7 +15,9 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
+import androidx.core.content.ContextCompat
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.*
 import com.example.mlkit_translator.ui.theme.MLKIT_translatorTheme
@@ -29,7 +35,32 @@ class FirebaseLogin : ComponentActivity() {
         setContent {
             MLKIT_translatorTheme {
                 val navController = rememberNavController()
+                val context = LocalContext.current
+                val permissionLauncher = rememberLauncherForActivityResult(
+                    contract = ActivityResultContracts.RequestMultiplePermissions(),
+                    onResult = { permissions ->
+                        permissions.entries.forEach {
+                            if (!it.value) {
+                                // 권한이 거부되었을 때 처리
+                                Toast.makeText(context, "${it.key} 권한이 필요합니다.", Toast.LENGTH_LONG).show()
+                            }
+                        }
+                    }
+                )
 
+                LaunchedEffect(Unit) {
+                    val permissions = arrayOf(
+                        Manifest.permission.CAMERA,
+                        Manifest.permission.WRITE_EXTERNAL_STORAGE,
+                        Manifest.permission.READ_EXTERNAL_STORAGE
+                    )
+                    val allPermissionsGranted = permissions.all {
+                        ContextCompat.checkSelfPermission(context, it) == PackageManager.PERMISSION_GRANTED
+                    }
+                    if (!allPermissionsGranted) {
+                        permissionLauncher.launch(permissions)
+                    }
+                }
                 NavHost(navController = navController, startDestination = Screens.Login.route) {
                     composable(Screens.Login.route) {
                         LoginScreen(
