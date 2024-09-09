@@ -12,7 +12,12 @@
           "package_name": "com.example.mlkit_translator"
         }
       },
-      "oauth_client": [],
+      "oauth_client": [
+        {
+          "client_id": "173173759893-urb0u9rmnej3uouteb59e7h144fn70av.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
       "api_key": [
         {
           "current_key": "AIzaSyDd1FEECzXO80nJ30iIkWNsGy-0WUKr-Z4"
@@ -20,7 +25,12 @@
       ],
       "services": {
         "appinvite_service": {
-          "other_platform_oauth_client": []
+          "other_platform_oauth_client": [
+            {
+              "client_id": "173173759893-urb0u9rmnej3uouteb59e7h144fn70av.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
         }
       }
     }
