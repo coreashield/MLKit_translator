@@ -1,4 +1,4 @@
-package com.example.mlkit_translator
+package com.example.mlkit_translator.firebase
 
 import android.os.Bundle
 import androidx.activity.ComponentActivity

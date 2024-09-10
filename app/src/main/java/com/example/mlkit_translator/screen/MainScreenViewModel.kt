@@ -1,4 +1,4 @@
-package com.example.mlkit_translator
+package com.example.mlkit_translator.screen
 
 import android.app.Application
 import android.content.ContentValues.TAG
@@ -20,7 +20,6 @@ import com.google.mlkit.vision.common.InputImage
 import com.google.mlkit.vision.text.TextRecognition
 import com.google.mlkit.vision.text.korean.KoreanTextRecognizerOptions
 import kotlinx.coroutines.launch
-
 class MainScreenViewModel(application: Application) : AndroidViewModel(application) {
     private val _outputText = MutableLiveData<String>()
     val outputText: LiveData<String> = _outputText
@@ -37,8 +36,19 @@ class MainScreenViewModel(application: Application) : AndroidViewModel(applicati
     private val _isLoading = MutableLiveData<Boolean>()
     val isLoading: LiveData<Boolean> = _isLoading
 
+    // 추가된 부분: sourceLanguage와 targetLanguage
+    private val _sourceLanguage = MutableLiveData("한국어")
+    val sourceLanguage: LiveData<String> = _sourceLanguage
+
+    private val _targetLanguage = MutableLiveData("영어")
+    val targetLanguage: LiveData<String> = _targetLanguage
+
     private val recognizer =
         TextRecognition.getClient(KoreanTextRecognizerOptions.Builder().build())
+
+    fun updateOutputText(newText: String) {
+        _outputText.value = newText
+    }
 
     fun setImageUri(uri: Uri?) {
         _imageUri.value = uri
@@ -49,6 +59,26 @@ class MainScreenViewModel(application: Application) : AndroidViewModel(applicati
 
     fun setCameraPreviewVisible(visible: Boolean) {
         _isCameraPreviewVisible.value = visible
+    }
+
+    fun setSourceLanguage(language: String) {
+        _sourceLanguage.value = language
+    }
+
+    fun setTargetLanguage(language: String) {
+        _targetLanguage.value = language
+    }
+
+    fun translateText(input: String) {
+        // 여기에 번역 로직 추가 (예: Firebase ML Kit 또는 다른 번역 API 사용)
+        // 현재는 기본 값으로 번역된 텍스트를 설정
+        _translatedText.value = if (_targetLanguage.value == "영어") {
+            // 한국어 -> 영어 번역 로직
+            "Translated text to English"
+        } else {
+            // 영어 -> 한국어 번역 로직
+            "번역된 한국어 텍스트"
+        }
     }
 
     fun saveResult(id: String, context: Context) {
