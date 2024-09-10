@@ -1,4 +1,4 @@
-package com.example.mlkit_translator
+package com.example.mlkit_translator.firebase
 
 import android.Manifest
 import android.content.pm.PackageManager
@@ -20,6 +20,8 @@ import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.*
+import com.example.mlkit_translator.data.FetchTranslatedData
+import com.example.mlkit_translator.screen.MainScreen
 import com.example.mlkit_translator.ui.theme.MLKIT_translatorTheme
 import com.google.firebase.auth.FirebaseAuth
 

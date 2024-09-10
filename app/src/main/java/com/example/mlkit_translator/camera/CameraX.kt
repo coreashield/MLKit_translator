@@ -1,4 +1,4 @@
-package com.example.mlkit_translator
+package com.example.mlkit_translator.camera
 
 import android.content.Context
 import android.net.Uri
