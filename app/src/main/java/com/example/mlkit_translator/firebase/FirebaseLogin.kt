@@ -84,8 +84,9 @@ class FirebaseLogin : ComponentActivity() {
                             }
                         )
                     }
-                    composable(Screens.TextExtract.route) {
-                        MainScreen(navController)
+                    composable(Screens.TextExtract.route + "/{email}") { backStackEntry ->
+                        val email = backStackEntry.arguments?.getString("email") ?: ""
+                        MainScreen(navController, email)
                     }
 
                     composable(Screens.Logdata.route + "/{email}") { backStackEntry ->
@@ -101,7 +102,8 @@ class FirebaseLogin : ComponentActivity() {
         auth.signInWithEmailAndPassword(email, password)
             .addOnCompleteListener(this) { task ->
                 if (task.isSuccessful) {
-                    navController.navigate(Screens.TextExtract.route)
+                    // 로그인 성공 시 이메일을 포함하여 MainScreen으로 이동
+                    navController.navigate("${Screens.TextExtract.route}/$email")
                 } else {
                     showErrorMessage("Authentication failed: ${task.exception?.message}")
                 }
@@ -127,7 +129,7 @@ class FirebaseLogin : ComponentActivity() {
 sealed class Screens(val route: String) {
     object Login : Screens("login_screen")
     object SignUp : Screens("sign_up_screen")
-    object TextExtract : Screens("text_extract_screen")
+    object TextExtract : Screens("text_extract_screen/{email}")
     object Logdata : Screens("Logdata_screen")
 }
 

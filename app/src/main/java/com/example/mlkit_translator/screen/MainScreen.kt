@@ -7,6 +7,9 @@ import androidx.compose.foundation.Image
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Home
+import androidx.compose.material.icons.filled.Search
+import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.runtime.livedata.observeAsState
@@ -21,25 +24,26 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavHostController
 import coil.compose.rememberAsyncImagePainter
+import com.example.mlkit_translator.firebase.Screens
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun MainScreen(navController: NavHostController) {
+fun MainScreen(navController: NavHostController, email: Any?) {
     val context = LocalContext.current
     val viewModel: MainScreenViewModel =
         viewModel(factory = MainScreenViewModelFactory(context.applicationContext as Application))
     val outputText by viewModel.outputText.observeAsState("")
     val translatedText by viewModel.translatedText.observeAsState("")
     val isLoading by viewModel.isLoading.observeAsState(false)
-    val sourceLanguage by viewModel.sourceLanguage.observeAsState("한국어")
-    val targetLanguage by viewModel.targetLanguage.observeAsState("영어")
+    val sourceLanguage by viewModel.sourceLanguage.observeAsState("ko")
+    val targetLanguage by viewModel.targetLanguage.observeAsState("en")
 
     Scaffold(
         topBar = {
             TopAppBar(
                 title = {
                     Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
-                        Text(text = "번역 귀요미")
+                        Text(text = "번역기요미")
                     }
                 }
             )
@@ -63,7 +67,7 @@ fun MainScreen(navController: NavHostController) {
                     onValueChange = { viewModel.updateOutputText(it) }
                 )
                 TranslateButton(
-                    onClick = { viewModel.translateText(outputText) },
+                    onClick = { viewModel.translateText(outputText) }, // 번역 함수 호출
                     isLoading = isLoading
                 )
                 TranslatedTextField(
@@ -71,10 +75,36 @@ fun MainScreen(navController: NavHostController) {
                     modifier = Modifier.weight(1f)
                 )
             }
-        }
+        } ,
+        bottomBar = {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(16.dp),
+                horizontalArrangement = Arrangement.SpaceEvenly,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                BottomNavigationItem(
+                    icon = Icons.Filled.Home,
+                    label = "Home",
+                    onClick = { navController.navigate(Screens.TextExtract.route) }
+                )
+                BottomNavigationItem(
+                    icon = Icons.Filled.Search,
+                    label = "Log",
+                    onClick = {
+                        navController.navigate("${Screens.Logdata.route}/$email")
+                    }
+                )
+                BottomNavigationItem(
+                    icon = Icons.Filled.Settings,
+                    label = "Settings",
+                    onClick = { }
+                )
+            }
+        },
     )
 }
-
 @Composable
 fun LanguageSelectionRow(
     sourceLanguage: String,
@@ -103,7 +133,7 @@ fun LanguageSelectionRow(
 @Composable
 fun LanguageDropdownMenu(label: String, onLanguageSelected: (String) -> Unit) {
     var expanded by remember { mutableStateOf(false) }
-    val languages = listOf("한국어", "영어")
+    val languages = listOf("ko", "en")
     Box(modifier = Modifier.wrapContentSize()) {
         Text(
             text = label,

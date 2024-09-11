@@ -21,6 +21,8 @@ import com.google.mlkit.vision.text.TextRecognition
 import com.google.mlkit.vision.text.korean.KoreanTextRecognizerOptions
 import kotlinx.coroutines.launch
 class MainScreenViewModel(application: Application) : AndroidViewModel(application) {
+    private val translatorManager = TranslatorManager(application) // TranslatorManager 초기화
+
     private val _outputText = MutableLiveData<String>()
     val outputText: LiveData<String> = _outputText
 
@@ -37,11 +39,44 @@ class MainScreenViewModel(application: Application) : AndroidViewModel(applicati
     val isLoading: LiveData<Boolean> = _isLoading
 
     // 추가된 부분: sourceLanguage와 targetLanguage
-    private val _sourceLanguage = MutableLiveData("한국어")
+    private val _sourceLanguage = MutableLiveData("ko")
     val sourceLanguage: LiveData<String> = _sourceLanguage
 
-    private val _targetLanguage = MutableLiveData("영어")
+    private val _targetLanguage = MutableLiveData("en")
     val targetLanguage: LiveData<String> = _targetLanguage
+
+    fun translateText(input: String) {
+        _isLoading.value = true
+
+        val sourceLang = _sourceLanguage.value
+        val targetLang = _targetLanguage.value
+
+        if (sourceLang != null && targetLang != null) {
+            translatorManager.initializeTranslator(sourceLang, targetLang)
+            translatorManager.downloadModelIfNeeded(
+                onSuccess = {
+                    translatorManager.translateText(
+                        input,
+                        onSuccess = { translated ->
+                            _translatedText.value = translated
+                            _isLoading.value = false
+                        },
+                        onFailure = { exception ->
+                            _translatedText.value = "번역 실패: ${exception.message}"
+                            _isLoading.value = false
+                        }
+                    )
+                },
+                onFailure = { exception ->
+                    _translatedText.value = "모델 다운로드 실패: ${exception.message}"
+                    _isLoading.value = false
+                }
+            )
+        } else {
+            _translatedText.value = "번역 실패: 소스 또는 타겟 언어가 설정되지 않았습니다."
+            _isLoading.value = false
+        }
+    }
 
     private val recognizer =
         TextRecognition.getClient(KoreanTextRecognizerOptions.Builder().build())
@@ -69,17 +104,6 @@ class MainScreenViewModel(application: Application) : AndroidViewModel(applicati
         _targetLanguage.value = language
     }
 
-    fun translateText(input: String) {
-        // 여기에 번역 로직 추가 (예: Firebase ML Kit 또는 다른 번역 API 사용)
-        // 현재는 기본 값으로 번역된 텍스트를 설정
-        _translatedText.value = if (_targetLanguage.value == "영어") {
-            // 한국어 -> 영어 번역 로직
-            "Translated text to English"
-        } else {
-            // 영어 -> 한국어 번역 로직
-            "번역된 한국어 텍스트"
-        }
-    }
 
     fun saveResult(id: String, context: Context) {
         val db = Firebase.firestore
