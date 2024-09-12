@@ -7,6 +7,7 @@ import androidx.compose.foundation.Image
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.AccountCircle
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Settings
@@ -100,6 +101,12 @@ fun MainScreen(navController: NavHostController, email: Any?) {
                     icon = Icons.Filled.Settings,
                     label = "Settings",
                     onClick = { }
+                )
+
+                BottomNavigationItem(
+                    icon = Icons.Filled.AccountCircle,
+                    label = "Image",
+                    onClick = { navController.navigate(Screens.ImageTranslate.route) }
                 )
             }
         },
@@ -232,82 +239,3 @@ fun BottomNavigationItem(
     }
 }
 
-@Composable
-fun TakePicture(onClick: () -> Unit) {
-    Button(onClick = onClick) {
-        Text("사진 찍기")
-    }
-}
-
-@Composable
-fun ExtractButton(onClick: () -> Unit) {
-    Button(onClick = onClick) {
-        Text("사진 선택")
-    }
-}
-
-@Composable
-fun SaveResultButton(
-    id: String,
-    context: Context,
-    viewModel: MainScreenViewModel
-) {
-    Button(onClick = {
-        viewModel.saveResult(id, context)
-    }) {
-        Text(text = "저장 하기")
-    }
-}
-
-@Composable
-fun DividerWithPadding() {
-    Divider(
-        Modifier
-            .fillMaxWidth()
-            .padding(20.dp),
-        thickness = 2.dp
-    )
-}
-
-@Composable
-fun ImageDisplay(imageUri: Uri?) {
-    Box(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(10.dp)
-            .clip(RectangleShape)
-            .size(320.dp)
-    ) {
-        if (imageUri != null) {
-            Image(
-                painter = rememberAsyncImagePainter(imageUri),
-                contentDescription = null,
-                contentScale = ContentScale.Fit,
-                modifier = Modifier.fillMaxSize()
-            )
-        } else {
-            Text(
-                text = "선택 된 이미지 없음",
-                modifier = Modifier.align(Alignment.Center)
-            )
-        }
-    }
-}
-
-@Composable
-fun OutputText(outputText: String, isLoading: Boolean) {
-    val displayText = if (isLoading) {
-        "이미지를 분석중입니다"
-    } else {
-        if (outputText.isEmpty()) {
-            "인식된 글자가 없습니다."
-        } else {
-            outputText
-        }
-    }
-
-    Text(
-        text = displayText,
-        modifier = Modifier.padding(20.dp)
-    )
-}
