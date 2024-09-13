@@ -1,5 +1,7 @@
 package com.example.mlkit_translator.firebase
 
+import ImageTranslateScreen
+import ImageTranslateViewModel
 import android.Manifest
 import android.content.pm.PackageManager
 import android.os.Bundle
@@ -93,6 +95,11 @@ class FirebaseLogin : ComponentActivity() {
                         val userID = backStackEntry.arguments?.getString("email") ?: ""
                         FetchTranslatedData(userID)
                     }
+
+                    composable(Screens.ImageTranslate.route) { backStackEntry ->
+                        ImageTranslateScreen()
+
+                    }
                 }
             }
         }
@@ -131,6 +138,8 @@ sealed class Screens(val route: String) {
     object SignUp : Screens("sign_up_screen")
     object TextExtract : Screens("text_extract_screen/{email}")
     object Logdata : Screens("Logdata_screen")
+    object ImageTranslate : Screens("image_translate") // 새로운 스크린 경로 추가
+
 }
 
 @Composable
