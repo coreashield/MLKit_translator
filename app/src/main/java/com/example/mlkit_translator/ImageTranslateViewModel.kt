@@ -16,6 +16,11 @@ class ImageTranslateViewModel(application: Application) : AndroidViewModel(appli
     private val _imageUri = MutableLiveData<Uri?>()
     val imageUri: LiveData<Uri?> = _imageUri
 
+    // 이미지 URI를 설정하는 메서드
+    fun setImageUri(uri: Uri?) {
+        _imageUri.value = uri
+    }
+
     private val _translatedText = MutableLiveData<String>()
     val translatedText: LiveData<String> = _translatedText
 
